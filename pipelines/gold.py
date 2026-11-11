@@ -34,7 +34,21 @@ def run() -> dict:
                (SELECT COUNT(*) FROM quarantine_sales) AS quarantine_rows,
                (SELECT COUNT(*) FROM silver_sales WHERE payment_amount < 0) AS invalid_silver_payments
     """)
-    return {"monthly_rows": con.execute("SELECT COUNT(*) FROM gold_monthly_performance").fetchone()[0], "product_rows": con.execute("SELECT COUNT(*) FROM gold_product_performance").fetchone()[0]}
+    con.execute("""
+        CREATE OR REPLACE TABLE gold_customer_performance AS
+        SELECT customer_name, COUNT(*) AS orders, SUM(payment_amount) AS sales,
+               SUM(payment_amount - shipping_cost - goods_cost) AS operating_net,
+               AVG(payment_amount) AS average_order_value
+        FROM silver_sales GROUP BY 1 ORDER BY sales DESC
+    """)
+    con.execute("""
+        CREATE OR REPLACE TABLE gold_reconciliation AS
+        SELECT month_sheet, SUM(source_net_amount) AS source_net,
+               SUM(payment_amount - shipping_cost - goods_cost) AS recomputed_net,
+               SUM(source_net_amount) - SUM(payment_amount - shipping_cost - goods_cost) AS variance
+        FROM silver_sales GROUP BY 1 ORDER BY 1
+    """)
+    return {"monthly_rows": con.execute("SELECT COUNT(*) FROM gold_monthly_performance").fetchone()[0], "product_rows": con.execute("SELECT COUNT(*) FROM gold_product_performance").fetchone()[0], "customer_rows": con.execute("SELECT COUNT(*) FROM gold_customer_performance").fetchone()[0]}
 
 
 if __name__ == "__main__":

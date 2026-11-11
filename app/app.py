@@ -47,7 +47,8 @@ if quarantine_count:
     st.dataframe(con.execute("SELECT source_sheet, source_row, Emri AS customer_name, Pagesa AS payment_amount, quarantine_reason FROM quarantine_sales ORDER BY source_sheet, source_row").df(), hide_index=True, width="stretch")
 
 if gold_ready:
-    st.subheader("Gold business marts")
+    st.subheader("Business analytics")
+    st.caption("Gold marts turn validated transactions into decision-ready sales, product, customer, and reconciliation views.")
     gold_left, gold_right = st.columns(2)
     with gold_left:
         monthly = con.execute("SELECT * FROM gold_monthly_performance").df()
@@ -57,6 +58,15 @@ if gold_ready:
         products = con.execute("SELECT * FROM gold_product_performance LIMIT 15").df()
         st.plotly_chart(px.bar(products, x="product", y="sales", title="Top products by sales"), width="stretch")
         st.dataframe(products, hide_index=True, width="stretch")
+    analytics_left, analytics_right = st.columns(2)
+    with analytics_left:
+        customers = con.execute("SELECT * FROM gold_customer_performance LIMIT 20").df()
+        st.plotly_chart(px.bar(customers.head(10), x="customer_name", y="sales", title="Top customers by sales"), width="stretch")
+        st.dataframe(customers, hide_index=True, width="stretch")
+    with analytics_right:
+        reconciliation = con.execute("SELECT * FROM gold_reconciliation").df()
+        st.plotly_chart(px.bar(reconciliation, x="month_sheet", y="variance", title="Source net versus recomputed net variance"), width="stretch")
+        st.dataframe(reconciliation, hide_index=True, width="stretch")
 
 st.subheader("Quality history and alerts")
 history = con.execute("SELECT * FROM quality_history ORDER BY measured_at DESC LIMIT 100").df() if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='quality_history'").fetchone()[0] else None

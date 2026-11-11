@@ -26,6 +26,7 @@ def test_gold_marts_build():
     result = gold_run()
     assert result["monthly_rows"] == 12
     assert result["product_rows"] > 0
+    assert result["customer_rows"] > 0
 
 
 def test_unchanged_source_is_skipped():
