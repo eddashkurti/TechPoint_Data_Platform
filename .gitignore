@@ -1,6 +1,7 @@
 data/raw/*
 data/quarantine/*
 logs/*
+reports/*
 *.duckdb
 *.duckdb.wal
 __pycache__/
