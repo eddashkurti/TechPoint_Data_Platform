@@ -14,7 +14,10 @@ def run() -> dict:
             CAST(source_sheet AS VARCHAR) AS month_sheet,
             CAST(source_row AS INTEGER) AS source_row,
             TRIM(CAST(Emri AS VARCHAR)) AS customer_name,
-            NULLIF(TRIM(CAST(Produkti AS VARCHAR)), '') AS product,
+            CASE
+                WHEN LOWER(TRIM(CAST(Produkti AS VARCHAR))) IN ('3 pjes', '3 pjese') THEN '3 pjese'
+                ELSE NULLIF(TRIM(CAST(Produkti AS VARCHAR)), '')
+            END AS product,
             CAST(Pagesa AS DECIMAL(12,2)) AS payment_amount,
             CAST(Posta AS DECIMAL(12,2)) AS shipping_cost,
             CAST(Mall AS DECIMAL(12,2)) AS goods_cost,

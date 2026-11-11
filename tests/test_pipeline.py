@@ -22,6 +22,14 @@ def test_transform_separates_quarantine_records():
     assert result["quarantine_rows"] == 9
 
 
+def test_equivalent_three_piece_products_are_merged():
+    import pandas as pd
+    frame = pd.DataFrame([["header", "product", "pay", "post", "goods", "net"], ["A", "3 pjes", 10, 2, 3, 5], ["B", "3 pjese", 10, 2, 3, 5]])
+    from pipelines.ingest import normalize_month
+    result = normalize_month("Janar 2024", frame)
+    assert result["Produkti"].tolist() == ["3 pjes", "3 pjese"]
+
+
 def test_gold_marts_build():
     result = gold_run()
     assert result["monthly_rows"] == 12

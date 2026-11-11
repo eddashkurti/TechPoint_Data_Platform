@@ -35,8 +35,9 @@ Streamlit operations and analytics
 
 The Streamlit workspace leads with:
 
-- Monthly sales performance and order volume.
-- Product sales and operating-net contribution.
+- Monthly sales and operating-profit performance in EUR, ordered from Janar through Dhjetor.
+- Product sales and operating-profit contribution, with equivalent product labels consolidated.
+- Monthly orders, Posta shipping cost, and Mall supplier-product cost.
 - Product profitability ranking.
 - Product margin comparison.
 - Monthly sales and operating-profit trend.

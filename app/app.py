@@ -24,8 +24,8 @@ snapshot_count = int(con.execute("SELECT COUNT(*) FROM information_schema.tables
 if gold_ready:
     totals = con.execute("SELECT SUM(sales), SUM(operating_net), SUM(orders), 100.0 * SUM(operating_net) / NULLIF(SUM(sales), 0) FROM gold_monthly_performance").fetchone()
     cols = st.columns(4)
-    cols[0].metric("Total sales", f"${totals[0]:,.0f}")
-    cols[1].metric("Operating profit", f"${totals[1]:,.0f}")
+    cols[0].metric("Total sales", f"€{totals[0]:,.0f}")
+    cols[1].metric("Operating profit", f"€{totals[1]:,.0f}")
     cols[2].metric("Orders", f"{int(totals[2]):,}")
     cols[3].metric("Operating margin", f"{totals[3]:.1f}%")
 if gold_ready:
@@ -34,19 +34,26 @@ if gold_ready:
     gold_left, gold_right = st.columns(2)
     with gold_left:
         monthly = con.execute("SELECT * FROM gold_monthly_performance").df()
-        fig = px.line(monthly, x="month_sheet", y=["sales", "operating_net"], markers=True, title="Sales and operating profit by month")
+        fig = px.line(monthly.sort_values("month_order"), x="month_name", y=["sales", "operating_net"], markers=True, title="Sales and operating profit by month")
         st.plotly_chart(fig, width="stretch")
     with gold_right:
         products = con.execute("SELECT * FROM gold_product_performance ORDER BY operating_net DESC LIMIT 15").df()
         st.plotly_chart(px.bar(products.head(10), x="product", y="operating_net", title="Top products by operating profit"), width="stretch")
     products = con.execute("SELECT * FROM gold_product_performance ORDER BY operating_net DESC").df()
-    st.dataframe(products, hide_index=True, width="stretch", column_config={"sales": st.column_config.NumberColumn(format="$%d"), "operating_net": st.column_config.NumberColumn(format="$%d"), "margin_pct": st.column_config.NumberColumn(format="%.1f%%")})
+    st.dataframe(products, hide_index=True, width="stretch", column_config={"sales": st.column_config.NumberColumn(format="€%d"), "operating_net": st.column_config.NumberColumn(format="€%d"), "margin_pct": st.column_config.NumberColumn(format="%.1f%%")})
+    st.subheader("Monthly operating costs and orders")
+    monthly_costs = monthly.sort_values("month_order")
+    cost_left, cost_right = st.columns(2)
+    with cost_left:
+        st.plotly_chart(px.bar(monthly_costs, x="month_name", y="orders", title="Orders per month"), width="stretch")
+    with cost_right:
+        st.plotly_chart(px.bar(monthly_costs, x="month_name", y=["shipping_cost", "goods_cost"], title="Posta and Mall cost per month"), width="stretch")
     with st.expander("Profit reconciliation"):
         reconciliation = con.execute("SELECT * FROM gold_reconciliation").df()
         st.dataframe(reconciliation, hide_index=True, width="stretch")
 
 with st.expander("Data reliability and pipeline status"):
-    st.caption("Operational details are kept available for trust and troubleshooting without competing with the profitability analysis.")
+    st.caption("Operational details are kept available for trust and troubleshooting without competing with the profitability analysis. Currency is EUR. Posta is shipping/post-office cost; Mall is supplier product cost.")
     ops = st.columns(5)
     ops[0].metric("Latest run", latest.iloc[0].status if not latest.empty else "Unknown")
     ops[1].metric("Validated rows", f"{silver_count:,}")
