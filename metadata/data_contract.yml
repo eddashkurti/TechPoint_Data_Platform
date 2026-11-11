@@ -1,0 +1,24 @@
+source:
+  name: TechPoint source workbook
+  format: xlsx
+  required_sheets:
+    - 2024
+    - Janar 2024
+    - Shkurt  2024
+    - Mars 2024
+    - Prill 2024
+    - Maj 2024
+    - Qershor 2024
+    - Korrik 2024
+    - Gusht 2024
+    - Shtator 2024
+    - Tetor 2024
+    - Nentor 2024
+    - Dhjetor 2024
+  monthly_columns:
+    - Emri
+    - Produkti
+    - Pagesa
+    - Posta
+    - Mall
+    - Net

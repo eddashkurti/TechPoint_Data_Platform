@@ -1,0 +1,8 @@
+data/raw/*
+data/quarantine/*
+logs/*
+*.duckdb
+*.duckdb.wal
+__pycache__/
+*.pyc
+.venv/
