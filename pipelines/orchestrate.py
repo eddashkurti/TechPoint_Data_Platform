@@ -6,7 +6,7 @@ from quality import run as quality
 
 
 if __name__ == "__main__":
-    results = {"ingest": ingest(), "transform": transform(), "gold": gold(), "quality": quality()}
+    results = {"ingest": ingest(force="--force" in __import__("sys").argv), "transform": transform(), "gold": gold(), "quality": quality()}
     if any(item["status"] == "FAIL" for item in results["quality"]):
         raise SystemExit(1)
     print(results)

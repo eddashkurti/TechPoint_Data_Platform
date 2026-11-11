@@ -20,13 +20,15 @@ quarantine_count = int(con.execute("SELECT COUNT(*) FROM quarantine_sales").fetc
 gold_ready = con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gold_monthly_performance'").fetchone()[0] > 0
 sheet_count = int(con.execute("SELECT COUNT(DISTINCT source_sheet) FROM bronze_sales").fetchone()[0])
 source_count = int(con.execute("SELECT COUNT(DISTINCT source_file) FROM pipeline_runs").fetchone()[0])
-cols = st.columns(6)
+snapshot_count = int(con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='source_snapshots'").fetchone()[0])
+cols = st.columns(7)
 cols[0].metric("Latest run", latest.iloc[0].status if not latest.empty else "Unknown")
 cols[1].metric("Bronze rows", f"{row_count:,}")
 cols[2].metric("Silver rows", f"{silver_count:,}")
 cols[3].metric("Quarantined", f"{quarantine_count:,}")
 cols[4].metric("Source sheets", f"{sheet_count:,}")
 cols[5].metric("Source files", f"{source_count:,}")
+cols[6].metric("Snapshots", f"{snapshot_count:,}")
 left, right = st.columns(2)
 with left:
     st.subheader("Rows by source sheet")
@@ -65,3 +67,7 @@ if history is not None and not history.empty:
     else:
         st.error(f"{len(failures)} failing quality check results require attention.")
     st.dataframe(history, hide_index=True, width="stretch")
+
+if snapshot_count:
+    st.subheader("Source snapshot history")
+    st.dataframe(con.execute("SELECT snapshot_id, source_file, source_sha256, captured_at, row_count, sheet_count, status FROM source_snapshots ORDER BY captured_at DESC").df(), hide_index=True, width="stretch")
