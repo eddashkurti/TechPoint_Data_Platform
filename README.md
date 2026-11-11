@@ -47,20 +47,6 @@ The Streamlit workspace leads with:
 
 The reconciliation view is intentionally explicit: the source workbook’s recorded `Net` value is compared with the platform’s recomputed value, making source-definition differences visible instead of silently blending them into a KPI.
 
-## Run locally
-
-Keep the private workbook outside Git and provide its path through an environment variable:
-
-```powershell
-py -3.13 -m pip install -r requirements.txt
-$env:TECHPOINT_SOURCE_XLSX = 'path\to\techpoint_source.xlsx'
-py -3.13 pipelines/schema_check.py
-py -3.13 pipelines/orchestrate.py
-py -3.13 -m streamlit run app/app.py
-```
-
-Use `py -3.13 pipelines/orchestrate.py --force` to rebuild intentionally. If the source fingerprint is unchanged, ingestion returns `SKIPPED_UNCHANGED` while downstream marts and quality history remain available.
-
 ## Repository structure
 
 ```text
