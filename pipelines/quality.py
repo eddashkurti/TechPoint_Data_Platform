@@ -10,6 +10,9 @@ CHECKS = {
     "missing customer names": "SELECT COUNT(*) FROM bronze_sales WHERE Emri IS NULL OR trim(Emri)=''",
     "negative payments": "SELECT COUNT(*) FROM bronze_sales WHERE Pagesa < 0",
     "missing source lineage": "SELECT COUNT(*) FROM bronze_sales WHERE source_sheet IS NULL OR source_row IS NULL",
+    "silver table exists": "SELECT COUNT(*) FROM information_schema.tables WHERE table_name='silver_sales'",
+    "silver rows have typed payments": "SELECT COUNT(*) FROM silver_sales WHERE payment_amount IS NULL",
+    "quarantine is traceable": "SELECT COUNT(*) FROM quarantine_sales WHERE source_sheet IS NULL OR source_row IS NULL",
 }
 WARNINGS = {"negative payments"}
 
@@ -18,7 +21,7 @@ def run() -> list[dict]:
     results = []
     for name, sql in CHECKS.items():
         value = con.execute(sql).fetchone()[0]
-        passed = value > 0 if name in {"bronze table exists", "rows loaded"} else value == 0
+        passed = value > 0 if name in {"bronze table exists", "rows loaded", "silver table exists"} else value == 0
         status = "PASS" if passed else ("WARN" if name in WARNINGS else "FAIL")
         results.append({"check": name, "value": value, "status": status})
     return results

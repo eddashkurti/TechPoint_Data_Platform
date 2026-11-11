@@ -15,13 +15,17 @@ if not DB_PATH.exists():
 con = duckdb.connect(str(DB_PATH), read_only=True)
 latest = con.execute("SELECT * FROM pipeline_runs ORDER BY finished_at DESC LIMIT 1").df()
 row_count = int(con.execute("SELECT COUNT(*) FROM bronze_sales").fetchone()[0])
+silver_count = int(con.execute("SELECT COUNT(*) FROM silver_sales").fetchone()[0]) if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='silver_sales'").fetchone()[0] else 0
+quarantine_count = int(con.execute("SELECT COUNT(*) FROM quarantine_sales").fetchone()[0]) if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='quarantine_sales'").fetchone()[0] else 0
 sheet_count = int(con.execute("SELECT COUNT(DISTINCT source_sheet) FROM bronze_sales").fetchone()[0])
 source_count = int(con.execute("SELECT COUNT(DISTINCT source_file) FROM pipeline_runs").fetchone()[0])
-cols = st.columns(4)
+cols = st.columns(6)
 cols[0].metric("Latest run", latest.iloc[0].status if not latest.empty else "Unknown")
 cols[1].metric("Bronze rows", f"{row_count:,}")
-cols[2].metric("Source sheets", f"{sheet_count:,}")
-cols[3].metric("Source files", f"{source_count:,}")
+cols[2].metric("Silver rows", f"{silver_count:,}")
+cols[3].metric("Quarantined", f"{quarantine_count:,}")
+cols[4].metric("Source sheets", f"{sheet_count:,}")
+cols[5].metric("Source files", f"{source_count:,}")
 left, right = st.columns(2)
 with left:
     st.subheader("Rows by source sheet")
@@ -33,3 +37,8 @@ with right:
     st.dataframe(checks, hide_index=True, width="stretch")
 st.subheader("Recent pipeline runs")
 st.dataframe(con.execute("SELECT run_id, source_file, source_sha256, started_at, finished_at, status, row_count, sheet_count FROM pipeline_runs ORDER BY finished_at DESC").df(), hide_index=True, width="stretch")
+
+if quarantine_count:
+    st.subheader("Quarantine review")
+    st.caption("These records are excluded from Silver until their business meaning is confirmed.")
+    st.dataframe(con.execute("SELECT source_sheet, source_row, Emri AS customer_name, Pagesa AS payment_amount, quarantine_reason FROM quarantine_sales ORDER BY source_sheet, source_row").df(), hide_index=True, width="stretch")

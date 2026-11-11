@@ -9,6 +9,8 @@ Contract validation
         ↓
 Bronze DuckDB table: bronze_sales
         ↓
+Silver typed table + quarantine
+        ↓
 Quality checks + lineage metadata
         ↓
 Streamlit observability app
@@ -26,4 +28,4 @@ The bronze layer preserves the original business fields while adding `source_she
 
 ## Next layers
 
-The next implementation phase will add a Silver table with standardized names, typed dates, explicit refund classification, and a quarantine table for records that cannot be safely modeled.
+The Silver layer standardizes names, types transaction amounts, classifies sale candidates, and quarantines records that require business review before downstream modeling.

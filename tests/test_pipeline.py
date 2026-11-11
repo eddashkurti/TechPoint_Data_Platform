@@ -3,6 +3,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from pipelines.ingest import normalize_month
+from pipelines.transform import run as transform_run
 
 def test_normalize_month_preserves_lineage():
     import pandas as pd
@@ -11,3 +12,9 @@ def test_normalize_month_preserves_lineage():
     assert len(result) == 1
     assert result.iloc[0].source_sheet == "Janar 2024"
     assert result.iloc[0].source_row == 3
+
+
+def test_transform_separates_quarantine_records():
+    result = transform_run()
+    assert result["silver_rows"] > 0
+    assert result["quarantine_rows"] == 9
