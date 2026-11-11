@@ -33,14 +33,16 @@ Streamlit operations and analytics
 
 ## Business analytics in the app
 
-The Streamlit workspace includes:
+The Streamlit workspace leads with:
 
 - Monthly sales performance and order volume.
 - Product sales and operating-net contribution.
-- Top-customer concentration.
+- Product profitability ranking.
+- Product margin comparison.
+- Monthly sales and operating-profit trend.
 - Source-net versus recomputed-net reconciliation.
-- Bronze/Silver/quarantine coverage.
-- Quality history and pipeline snapshots.
+- Compact Bronze/Silver/quarantine coverage.
+- Quality status for operational trust.
 
 The reconciliation view is intentionally explicit: the source workbook’s recorded `Net` value is compared with the platform’s recomputed value, making source-definition differences visible instead of silently blending them into a KPI.
 

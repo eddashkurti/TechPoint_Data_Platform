@@ -7,8 +7,8 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "techpoint.duckdb"
 st.set_page_config(page_title="TechPoint Data Platform", page_icon="◈", layout="wide")
-st.title("TechPoint Data Platform")
-st.caption("Pipeline observability · data quality · lineage · operational readiness")
+st.title("TechPoint Profitability Dashboard")
+st.caption("Product sales, operating profit, margin, and data reliability")
 if not DB_PATH.exists():
     st.warning("No local pipeline database exists yet. Run `py pipelines/ingest.py` first.")
     st.stop()
@@ -21,54 +21,42 @@ gold_ready = con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE t
 sheet_count = int(con.execute("SELECT COUNT(DISTINCT source_sheet) FROM bronze_sales").fetchone()[0])
 source_count = int(con.execute("SELECT COUNT(DISTINCT source_file) FROM pipeline_runs").fetchone()[0])
 snapshot_count = int(con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='source_snapshots'").fetchone()[0])
-cols = st.columns(7)
-cols[0].metric("Latest run", latest.iloc[0].status if not latest.empty else "Unknown")
-cols[1].metric("Bronze rows", f"{row_count:,}")
-cols[2].metric("Silver rows", f"{silver_count:,}")
-cols[3].metric("Quarantined", f"{quarantine_count:,}")
-cols[4].metric("Source sheets", f"{sheet_count:,}")
-cols[5].metric("Source files", f"{source_count:,}")
-cols[6].metric("Snapshots", f"{snapshot_count:,}")
-left, right = st.columns(2)
-with left:
-    st.subheader("Rows by source sheet")
-    by_sheet = con.execute("SELECT source_sheet, COUNT(*) AS rows FROM bronze_sales GROUP BY 1 ORDER BY 1").df()
-    st.plotly_chart(px.bar(by_sheet, x="source_sheet", y="rows", title="Bronze ingestion volume"), width="stretch")
-with right:
-    st.subheader("Pipeline checks")
-    checks = con.execute("SELECT 'Rows loaded' AS check, COUNT(*) AS value, CASE WHEN COUNT(*) > 0 THEN 'PASS' ELSE 'FAIL' END AS status FROM bronze_sales UNION ALL SELECT 'Negative payments', COUNT(*), CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END FROM bronze_sales WHERE Pagesa < 0 UNION ALL SELECT 'Missing lineage', COUNT(*), CASE WHEN COUNT(*) = 0 THEN 'PASS' ELSE 'FAIL' END FROM bronze_sales WHERE source_sheet IS NULL OR source_row IS NULL").df()
-    st.dataframe(checks, hide_index=True, width="stretch")
-st.subheader("Recent pipeline runs")
-st.dataframe(con.execute("SELECT run_id, source_file, source_sha256, started_at, finished_at, status, row_count, sheet_count FROM pipeline_runs ORDER BY finished_at DESC").df(), hide_index=True, width="stretch")
-
-if quarantine_count:
-    st.subheader("Quarantine review")
-    st.caption("These records are excluded from Silver until their business meaning is confirmed.")
-    st.dataframe(con.execute("SELECT source_sheet, source_row, Emri AS customer_name, Pagesa AS payment_amount, quarantine_reason FROM quarantine_sales ORDER BY source_sheet, source_row").df(), hide_index=True, width="stretch")
-
 if gold_ready:
-    st.subheader("Business analytics")
-    st.caption("Gold marts turn validated transactions into decision-ready sales, product, customer, and reconciliation views.")
+    totals = con.execute("SELECT SUM(sales), SUM(operating_net), SUM(orders), 100.0 * SUM(operating_net) / NULLIF(SUM(sales), 0) FROM gold_monthly_performance").fetchone()
+    cols = st.columns(4)
+    cols[0].metric("Total sales", f"${totals[0]:,.0f}")
+    cols[1].metric("Operating profit", f"${totals[1]:,.0f}")
+    cols[2].metric("Orders", f"{int(totals[2]):,}")
+    cols[3].metric("Operating margin", f"{totals[3]:.1f}%")
+if gold_ready:
+    st.subheader("Product profitability")
+    st.caption("Products are ranked by operating profit after shipping and goods costs.")
     gold_left, gold_right = st.columns(2)
     with gold_left:
         monthly = con.execute("SELECT * FROM gold_monthly_performance").df()
-        st.plotly_chart(px.line(monthly, x="month_sheet", y="sales", markers=True, title="Sales by source month"), width="stretch")
-        st.dataframe(monthly, hide_index=True, width="stretch")
+        fig = px.line(monthly, x="month_sheet", y=["sales", "operating_net"], markers=True, title="Sales and operating profit by month")
+        st.plotly_chart(fig, width="stretch")
     with gold_right:
-        products = con.execute("SELECT * FROM gold_product_performance LIMIT 15").df()
-        st.plotly_chart(px.bar(products, x="product", y="sales", title="Top products by sales"), width="stretch")
-        st.dataframe(products, hide_index=True, width="stretch")
-    analytics_left, analytics_right = st.columns(2)
-    with analytics_left:
-        customers = con.execute("SELECT * FROM gold_customer_performance LIMIT 20").df()
-        st.plotly_chart(px.bar(customers.head(10), x="customer_name", y="sales", title="Top customers by sales"), width="stretch")
-        st.dataframe(customers, hide_index=True, width="stretch")
-    with analytics_right:
+        products = con.execute("SELECT * FROM gold_product_performance ORDER BY operating_net DESC LIMIT 15").df()
+        st.plotly_chart(px.bar(products.head(10), x="product", y="operating_net", title="Top products by operating profit"), width="stretch")
+    products = con.execute("SELECT * FROM gold_product_performance ORDER BY operating_net DESC").df()
+    st.dataframe(products, hide_index=True, width="stretch", column_config={"sales": st.column_config.NumberColumn(format="$%d"), "operating_net": st.column_config.NumberColumn(format="$%d"), "margin_pct": st.column_config.NumberColumn(format="%.1f%%")})
+    with st.expander("Profit reconciliation"):
         reconciliation = con.execute("SELECT * FROM gold_reconciliation").df()
-        st.plotly_chart(px.bar(reconciliation, x="month_sheet", y="variance", title="Source net versus recomputed net variance"), width="stretch")
         st.dataframe(reconciliation, hide_index=True, width="stretch")
 
-st.subheader("Quality history and alerts")
+with st.expander("Data reliability and pipeline status"):
+    st.caption("Operational details are kept available for trust and troubleshooting without competing with the profitability analysis.")
+    ops = st.columns(5)
+    ops[0].metric("Latest run", latest.iloc[0].status if not latest.empty else "Unknown")
+    ops[1].metric("Validated rows", f"{silver_count:,}")
+    ops[2].metric("Quarantined", f"{quarantine_count:,}")
+    ops[3].metric("Source sheets", f"{sheet_count:,}")
+    ops[4].metric("Snapshots", f"{snapshot_count:,}")
+    if quarantine_count:
+        st.warning(f"{quarantine_count} records are excluded from profitability metrics pending classification.")
+
+st.subheader("Quality status")
 history = con.execute("SELECT * FROM quality_history ORDER BY measured_at DESC LIMIT 100").df() if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='quality_history'").fetchone()[0] else None
 if history is not None and not history.empty:
     failures = history[history.status == "FAIL"]
@@ -76,8 +64,4 @@ if history is not None and not history.empty:
         st.success("No failing quality checks in the recorded history.")
     else:
         st.error(f"{len(failures)} failing quality check results require attention.")
-    st.dataframe(history, hide_index=True, width="stretch")
-
-if snapshot_count:
-    st.subheader("Source snapshot history")
-    st.dataframe(con.execute("SELECT snapshot_id, source_file, source_sha256, captured_at, row_count, sheet_count, status FROM source_snapshots ORDER BY captured_at DESC").df(), hide_index=True, width="stretch")
+    st.dataframe(history[["check_name", "value", "status", "measured_at"]], hide_index=True, width="stretch")
