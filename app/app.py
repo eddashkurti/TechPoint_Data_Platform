@@ -17,6 +17,7 @@ latest = con.execute("SELECT * FROM pipeline_runs ORDER BY finished_at DESC LIMI
 row_count = int(con.execute("SELECT COUNT(*) FROM bronze_sales").fetchone()[0])
 silver_count = int(con.execute("SELECT COUNT(*) FROM silver_sales").fetchone()[0]) if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='silver_sales'").fetchone()[0] else 0
 quarantine_count = int(con.execute("SELECT COUNT(*) FROM quarantine_sales").fetchone()[0]) if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='quarantine_sales'").fetchone()[0] else 0
+gold_ready = con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='gold_monthly_performance'").fetchone()[0] > 0
 sheet_count = int(con.execute("SELECT COUNT(DISTINCT source_sheet) FROM bronze_sales").fetchone()[0])
 source_count = int(con.execute("SELECT COUNT(DISTINCT source_file) FROM pipeline_runs").fetchone()[0])
 cols = st.columns(6)
@@ -42,3 +43,25 @@ if quarantine_count:
     st.subheader("Quarantine review")
     st.caption("These records are excluded from Silver until their business meaning is confirmed.")
     st.dataframe(con.execute("SELECT source_sheet, source_row, Emri AS customer_name, Pagesa AS payment_amount, quarantine_reason FROM quarantine_sales ORDER BY source_sheet, source_row").df(), hide_index=True, width="stretch")
+
+if gold_ready:
+    st.subheader("Gold business marts")
+    gold_left, gold_right = st.columns(2)
+    with gold_left:
+        monthly = con.execute("SELECT * FROM gold_monthly_performance").df()
+        st.plotly_chart(px.line(monthly, x="month_sheet", y="sales", markers=True, title="Sales by source month"), width="stretch")
+        st.dataframe(monthly, hide_index=True, width="stretch")
+    with gold_right:
+        products = con.execute("SELECT * FROM gold_product_performance LIMIT 15").df()
+        st.plotly_chart(px.bar(products, x="product", y="sales", title="Top products by sales"), width="stretch")
+        st.dataframe(products, hide_index=True, width="stretch")
+
+st.subheader("Quality history and alerts")
+history = con.execute("SELECT * FROM quality_history ORDER BY measured_at DESC LIMIT 100").df() if con.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_name='quality_history'").fetchone()[0] else None
+if history is not None and not history.empty:
+    failures = history[history.status == "FAIL"]
+    if failures.empty:
+        st.success("No failing quality checks in the recorded history.")
+    else:
+        st.error(f"{len(failures)} failing quality check results require attention.")
+    st.dataframe(history, hide_index=True, width="stretch")

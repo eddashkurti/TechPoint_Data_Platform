@@ -4,6 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from pipelines.ingest import normalize_month
 from pipelines.transform import run as transform_run
+from pipelines.gold import run as gold_run
 
 def test_normalize_month_preserves_lineage():
     import pandas as pd
@@ -18,3 +19,9 @@ def test_transform_separates_quarantine_records():
     result = transform_run()
     assert result["silver_rows"] > 0
     assert result["quarantine_rows"] == 9
+
+
+def test_gold_marts_build():
+    result = gold_run()
+    assert result["monthly_rows"] == 12
+    assert result["product_rows"] > 0

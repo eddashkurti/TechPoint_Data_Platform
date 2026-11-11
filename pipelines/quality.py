@@ -1,6 +1,7 @@
 """Validate bronze data and report operational checks."""
 from pathlib import Path
 import duckdb
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = ROOT / "techpoint.duckdb"
@@ -17,13 +18,15 @@ CHECKS = {
 WARNINGS = {"negative payments"}
 
 def run() -> list[dict]:
-    con = duckdb.connect(str(DB_PATH), read_only=True)
+    con = duckdb.connect(str(DB_PATH))
+    con.execute("CREATE TABLE IF NOT EXISTS quality_history (measured_at TIMESTAMP, check_name VARCHAR, value BIGINT, status VARCHAR)")
     results = []
     for name, sql in CHECKS.items():
         value = con.execute(sql).fetchone()[0]
         passed = value > 0 if name in {"bronze table exists", "rows loaded", "silver table exists"} else value == 0
         status = "PASS" if passed else ("WARN" if name in WARNINGS else "FAIL")
         results.append({"check": name, "value": value, "status": status})
+        con.execute("INSERT INTO quality_history VALUES (?, ?, ?, ?)", [datetime.now(timezone.utc), name, value, status])
     return results
 
 if __name__ == "__main__":

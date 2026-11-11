@@ -11,6 +11,8 @@ Bronze DuckDB table: bronze_sales
         ↓
 Silver typed table + quarantine
         ↓
+Gold business marts + quality history
+        ↓
 Quality checks + lineage metadata
         ↓
 Streamlit observability app
