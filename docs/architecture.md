@@ -31,3 +31,5 @@ The bronze layer preserves the original business fields while adding `source_she
 ## Next layers
 
 The Silver layer standardizes names, types transaction amounts, classifies sale candidates, and quarantines records that require business review before downstream modeling.
+
+The source contract intentionally normalizes blank or whitespace-only customer-name headers to `Emri`; all other header changes are treated as schema drift.

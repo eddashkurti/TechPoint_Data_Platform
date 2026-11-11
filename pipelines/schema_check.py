@@ -19,7 +19,9 @@ def run(path: Path | None = None) -> dict:
     for sheet in MONTH_SHEETS:
         if sheet in missing_sheets:
             continue
-        columns = list(pd.read_excel(path, sheet_name=sheet, nrows=0).columns[:6])
+        columns = [str(column).strip() for column in pd.read_excel(path, sheet_name=sheet, nrows=0).columns[:6]]
+        if columns and columns[0] == '':
+            columns[0] = 'Emri'
         sheet_results.append({"sheet": sheet, "columns": columns, "status": "PASS" if columns == EXPECTED else "DRIFT"})
     result = {"source": str(path), "missing_sheets": missing_sheets, "unexpected_sheets": unexpected_sheets, "sheet_results": sheet_results, "status": "PASS" if not missing_sheets and all(item["status"] == "PASS" for item in sheet_results) else "DRIFT"}
     print(json.dumps(result, indent=2, ensure_ascii=False))
